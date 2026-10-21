@@ -91,9 +91,13 @@ export function useMenu() {
       category: item.category,
       image: item.image,
       available: item.available,
-      sort_order: Date.now(),
+      sort_order: Math.floor(Date.now() / 1000),
     });
-    if (err) setError("Gagal menambah item menu.");
+    if (err) {
+      setError("Gagal menambah item menu. Pastikan sesi admin masih aktif.");
+      return;
+    }
+    setError(null);
   }, []);
 
   const updateMenuItem = useCallback(async (id: string, patch: Partial<MenuItem>) => {
@@ -105,7 +109,11 @@ export function useMenu() {
     if (patch.image !== undefined) update.image = patch.image;
     if (patch.available !== undefined) update.available = patch.available;
     const { error: err } = await supabase.from("menu_items").update(update).eq("id", id);
-    if (err) setError("Gagal memperbarui item menu.");
+    if (err) {
+      setError("Gagal memperbarui item menu. Pastikan sesi admin masih aktif.");
+      return;
+    }
+    setError(null);
   }, []);
 
   const removeMenuItem = useCallback(async (id: string) => {
@@ -168,7 +176,7 @@ export function useTables() {
     const { error: err } = await supabase.from("cafe_tables").insert({
       id,
       label,
-      sort_order: Date.now(),
+      sort_order: Math.floor(Date.now() / 1000),
     });
     if (err) {
       // fallback: jika insert gagal (mis. belum login), simpan lokal saja
