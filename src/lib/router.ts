@@ -37,13 +37,15 @@ function setRouteImmediate(target: string): void {
   window.dispatchEvent(new HashChangeEvent("hashchange"));
 }
 
-export function buildMenuUrl(tableId: string): { url: string; isLocal: boolean } {
-  const base = window.location.origin + window.location.pathname;
+export function buildMenuUrl(tableId: string, publicBaseUrl?: string): { url: string; isLocal: boolean } {
+  const base = (publicBaseUrl || window.location.origin + window.location.pathname).replace(/\/$/, "");
   const url = `${base}#/menu?table=${encodeURIComponent(tableId)}`;
+  const hostname = window.location.hostname;
   const isLocal =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname === "0.0.0.0" ||
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "0.0.0.0" ||
+    hostname.endsWith("webcontainer-api.io") ||
     window.location.port !== "";
   return { url, isLocal };
 }

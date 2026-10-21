@@ -14,7 +14,8 @@ interface StaffTableQRProps {
 export function StaffTableQR({ tables, onAdd, onRemove }: StaffTableQRProps) {
   const [newLabel, setNewLabel] = useState("");
   const [preview, setPreview] = useState<CafeTable | null>(null);
-  const { isLocal } = useMemo(() => buildMenuUrl("T01"), []);
+  const [publicBaseUrl, setPublicBaseUrl] = useState(() => localStorage.getItem("kcp.public_url") ?? "");
+  const { isLocal } = useMemo(() => buildMenuUrl("T01", publicBaseUrl || undefined), [publicBaseUrl]);
 
   const handleAdd = () => {
     if (!newLabel.trim()) return;
@@ -36,10 +37,26 @@ export function StaffTableQR({ tables, onAdd, onRemove }: StaffTableQRProps) {
           <p className="font-semibold text-amber-900">{isLocal ? "URL Lokal (Preview)" : "QR siap dipindai"}</p>
           <p className="text-amber-800 mt-1">
             {isLocal
-              ? "Untuk demo lewat HP, terbitkan aplikasi terlebih dahulu. Setelah diterbitkan, QR otomatis memakai alamat publik yang bisa dibuka dari perangkat lain."
+              ? "Terbitkan aplikasi terlebih dahulu, lalu masukkan alamat website publik di bawah agar QR bisa dibuka dari iPhone dan HP lain."
               : "Pindai QR dari kamera HP untuk membuka menu pelanggan dengan meja ini sudah terpilih. Pesanan akan masuk ke dashboard admin secara realtime."}
           </p>
         </div>
+      </div>
+
+      <div className="mb-5 rounded-2xl border border-cream-200 bg-white p-4">
+        <label className="text-sm font-semibold text-espresso-800 block mb-1.5">Alamat website publik</label>
+        <input
+          type="url"
+          value={publicBaseUrl}
+          onChange={(e) => {
+            const value = e.target.value.trim();
+            setPublicBaseUrl(value);
+            localStorage.setItem("kcp.public_url", value);
+          }}
+          placeholder="Tempel alamat hasil Publish, misalnya https://nama-aplikasi.bolt.host"
+          className="w-full rounded-xl border border-cream-200 bg-cream-50 px-4 py-2.5 text-sm text-espresso-900 placeholder:text-espresso-400 focus:outline-none focus:ring-2 focus:ring-sage-400"
+        />
+        <p className="text-xs text-espresso-400 mt-2">Isi sekali setelah Publish. QR semua meja akan memakai alamat ini.</p>
       </div>
 
       {/* Add table */}
@@ -62,18 +79,18 @@ export function StaffTableQR({ tables, onAdd, onRemove }: StaffTableQRProps) {
       {/* Table grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tables.map((table) => (
-          <TableQRCard key={table.id} table={table} onRemove={onRemove} onPreview={setPreview} />
+          <TableQRCard key={table.id} table={table} publicBaseUrl={publicBaseUrl} onRemove={onRemove} onPreview={setPreview} />
         ))}
       </div>
 
-      <QRPreviewModal table={preview} onClose={() => setPreview(null)} />
+      <QRPreviewModal table={preview} publicBaseUrl={publicBaseUrl} onClose={() => setPreview(null)} />
     </div>
   );
 }
 
-function TableQRCard({ table, onRemove, onPreview }: { table: CafeTable; onRemove: (id: string) => void; onPreview: (t: CafeTable) => void }) {
+function TableQRCard({ table, publicBaseUrl, onRemove, onPreview }: { table: CafeTable; publicBaseUrl: string; onRemove: (id: string) => void; onPreview: (t: CafeTable) => void }) {
   const [copied, setCopied] = useState(false);
-  const { url, isLocal } = useMemo(() => buildMenuUrl(table.id), [table.id]);
+  const { url, isLocal } = useMemo(() => buildMenuUrl(table.id, publicBaseUrl || undefined), [table.id, publicBaseUrl]);
   const qrUrl = useMemo(() => svgToDataURL(generateQRSVG(url, 5, "#1c1410", "#ffffff")), [url]);
 
   const handleDownload = () => {
@@ -152,8 +169,8 @@ function TableQRCard({ table, onRemove, onPreview }: { table: CafeTable; onRemov
   );
 }
 
-function QRPreviewModal({ table, onClose }: { table: CafeTable | null; onClose: () => void }) {
-  const { url, isLocal } = useMemo(() => (table ? buildMenuUrl(table.id) : { url: "", isLocal: false }), [table]);
+function QRPreviewModal({ table, publicBaseUrl, onClose }: { table: CafeTable | null; publicBaseUrl: string; onClose: () => void }) {
+  const { url, isLocal } = useMemo(() => (table ? buildMenuUrl(table.id, publicBaseUrl || undefined) : { url: "", isLocal: false }), [table, publicBaseUrl]);
   const qrUrl = useMemo(() => svgToDataURL(generateQRSVG(url, 10, "#1c1410", "#ffffff")), [url]);
 
   return (
