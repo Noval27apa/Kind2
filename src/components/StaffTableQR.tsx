@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Download, Trash2, Plus, AlertCircle, Printer, ExternalLink } from "lucide-react";
+import { Download, Trash2, Plus, AlertCircle, Printer, ExternalLink, Copy, Check } from "lucide-react";
 import type { CafeTable } from "@/lib/types";
 import { buildMenuUrl, navigate } from "@/lib/router";
 import { generateQRSVG, svgToDataURL } from "@/lib/qr";
@@ -14,6 +14,7 @@ interface StaffTableQRProps {
 export function StaffTableQR({ tables, onAdd, onRemove }: StaffTableQRProps) {
   const [newLabel, setNewLabel] = useState("");
   const [preview, setPreview] = useState<CafeTable | null>(null);
+  const { isLocal } = useMemo(() => buildMenuUrl("T01"), []);
 
   const handleAdd = () => {
     if (!newLabel.trim()) return;
@@ -32,9 +33,11 @@ export function StaffTableQR({ tables, onAdd, onRemove }: StaffTableQRProps) {
       <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
         <AlertCircle size={20} className="text-amber-600 shrink-0 mt-0.5" />
         <div className="text-sm">
-          <p className="font-semibold text-amber-900">URL Lokal (Preview)</p>
+          <p className="font-semibold text-amber-900">{isLocal ? "URL Lokal (Preview)" : "QR siap dipindai"}</p>
           <p className="text-amber-800 mt-1">
-            Kode QR saat ini menggunakan URL preview lokal yang hanya bisa diakses dari perangkat ini. Untuk produksi, gunakan URL publik yang sudah diterbitkan.
+            {isLocal
+              ? "Untuk demo lewat HP, terbitkan aplikasi terlebih dahulu. Setelah diterbitkan, QR otomatis memakai alamat publik yang bisa dibuka dari perangkat lain."
+              : "Pindai QR dari kamera HP untuk membuka menu pelanggan dengan meja ini sudah terpilih. Pesanan akan masuk ke dashboard admin secara realtime."}
           </p>
         </div>
       </div>
@@ -69,6 +72,7 @@ export function StaffTableQR({ tables, onAdd, onRemove }: StaffTableQRProps) {
 }
 
 function TableQRCard({ table, onRemove, onPreview }: { table: CafeTable; onRemove: (id: string) => void; onPreview: (t: CafeTable) => void }) {
+  const [copied, setCopied] = useState(false);
   const { url, isLocal } = useMemo(() => buildMenuUrl(table.id), [table.id]);
   const qrUrl = useMemo(() => svgToDataURL(generateQRSVG(url, 5, "#1c1410", "#ffffff")), [url]);
 
@@ -84,6 +88,12 @@ function TableQRCard({ table, onRemove, onPreview }: { table: CafeTable; onRemov
   const handlePrint = () => {
     onPreview(table);
     setTimeout(() => window.print(), 400);
+  };
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
   };
 
   return (
@@ -112,7 +122,7 @@ function TableQRCard({ table, onRemove, onPreview }: { table: CafeTable; onRemov
         {url}
       </div>
 
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={handleDownload}
           className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-cream-200 bg-white text-espresso-700 text-xs font-semibold py-2 hover:bg-cream-100 transition-colors"
@@ -124,6 +134,12 @@ function TableQRCard({ table, onRemove, onPreview }: { table: CafeTable; onRemov
           className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-cream-200 bg-white text-espresso-700 text-xs font-semibold py-2 hover:bg-cream-100 transition-colors"
         >
           <Printer size={14} /> Cetak
+        </button>
+        <button
+          onClick={handleCopy}
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-cream-200 bg-white text-espresso-700 text-xs font-semibold py-2 hover:bg-cream-100 transition-colors"
+        >
+          {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Tersalin" : "Salin"}
         </button>
         <button
           onClick={() => onPreview(table)}
@@ -159,6 +175,13 @@ function QRPreviewModal({ table, onClose }: { table: CafeTable | null; onClose: 
           <div className="mt-3 text-[11px] text-espresso-400 break-all bg-cream-50 rounded-lg px-3 py-2 font-mono">
             {url}
           </div>
+
+          <button
+            onClick={() => navigator.clipboard.writeText(url)}
+            className="mt-3 w-full rounded-xl border border-cream-200 bg-white text-espresso-700 font-semibold py-3 hover:bg-cream-100 transition-colors"
+          >
+            <Copy size={16} className="inline mr-2" /> Salin tautan menu
+          </button>
 
           <button
             onClick={() => {
